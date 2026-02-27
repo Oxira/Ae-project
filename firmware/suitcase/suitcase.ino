@@ -4,17 +4,18 @@
  *  Materiel : Heltec WiFi LoRa 32 V4 (ESP32-S3)
  *
  *  La valise est le hub central du systeme :
- *  - Decouvre les satellites par ESP-NOW
+ *  - Decouvre les satellites par ESP-NOW (2.4 GHz)
  *  - Permet la saisie des noms, equipes et roles (clavier 4x4)
  *  - Gere la partie : demarrage, morts, revives, fin
  *  - Detecte la proximite des satellites via RSSI (~1m)
- *  - Envoie les evenements en temps reel au serveur web (WiFi HTTP)
+ *  - Transmet les evenements au SERVEUR TERRAIN via LoRa 868 MHz
+ *    (Le serveur terrain les relaie ensuite par MQTT vers le backend Java)
  *
  *  Librairies requises (Arduino Library Manager) :
  *    - Adafruit NeoPixel
  *    - Adafruit SSD1306 + Adafruit GFX
  *    - ArduinoJson
- *    - (optionnel) TinyGPS++ pour le GPS
+ *    - RadioLib (pour LoRa SX1262)
  *
  *  Librairie Heltec : https://github.com/HelTecAutomation/Heltec_ESP32
  * ============================================================
@@ -23,12 +24,18 @@
 #include <Arduino.h>
 #include <esp_now.h>
 #include <WiFi.h>
-#include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SSD1306.h>
 #include <ArduinoJson.h>
+#include <RadioLib.h>
 #include "config.h"
+
+// ============================================================
+// LORA SX1262 (Heltec V4 - GPIO fixes hardware)
+// ============================================================
+SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+bool loraOk = false;
 
 // ============================================================
 // PROTOCOLE (identique satellite.ino / suitcase.ino)
@@ -333,49 +340,39 @@ void setLEDs(uint32_t color) {
 }
 
 // ============================================================
-// HTTP - Envoi evenement au serveur
+// LORA - Envoi evenement au serveur terrain
 // ============================================================
-void sendEvent(const char* type, const SatelliteInfo* sat) {
-    if (!wifiOk) return;
-    HTTPClient http;
-    String url = String(SERVER_URL) + "/api/event";
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    http.setTimeout(HTTP_TIMEOUT_MS);
 
-    StaticJsonDocument<256> doc;
-    doc["type"]         = type;
-    doc["satellite_id"] = sat ? (int)(sat - satellites) : -1;
+// Paquet LoRa : JSON compact (<= 250 octets, limite LoRa)
+// Le serveur terrain le parse et le relaie via MQTT
+void sendLoRaEvent(const char* type, const SatelliteInfo* sat) {
+    if (!loraOk) return;
+
+    StaticJsonDocument<200> doc;
+    doc["type"] = type;
+    doc["ts"]   = millis();
     if (sat) {
-        doc["player"]   = sat->player;
-        doc["team"]     = sat->team < TEAM_COUNT ? TEAM_NAMES[sat->team] : "unknown";
-        doc["role"]     = sat->role < ROLE_COUNT ? ROLE_NAMES[sat->role] : "unknown";
-        doc["deaths"]   = sat->deaths;
-        doc["status"]   = sat->status == 0 ? "alive" : "out";
+        doc["sat"]    = (int)(sat - satellites);
+        doc["player"] = sat->player;
+        doc["team"]   = sat->team < TEAM_COUNT ? TEAM_NAMES[sat->team] : "?";
+        doc["role"]   = sat->role  < ROLE_COUNT ? ROLE_NAMES[sat->role]  : "?";
+        doc["deaths"] = sat->deaths;
+        doc["status"] = sat->status == 0 ? "alive" : "out";
     }
 
-    String body;
-    serializeJson(doc, body);
-    int code = http.POST(body);
-    http.end();
+    char buf[200];
+    size_t n = serializeJson(doc, buf, sizeof(buf));
 
-    Serial.printf("[HTTP] %s -> %d\n", type, code);
+    int state = lora.transmit((uint8_t*)buf, n);
+    if (state == RADIOLIB_ERR_NONE) {
+        Serial.printf("[LoRa TX] %s (%d octets)\n", type, (int)n);
+    } else {
+        Serial.printf("[LoRa TX] Erreur %d\n", state);
+    }
 }
 
-void sendGameEvent(const char* type) {
-    if (!wifiOk) return;
-    HTTPClient http;
-    String url = String(SERVER_URL) + "/api/event";
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    http.setTimeout(HTTP_TIMEOUT_MS);
-
-    StaticJsonDocument<128> doc;
-    doc["type"] = type;
-    String body;
-    serializeJson(doc, body);
-    http.POST(body);
-    http.end();
+void sendLoRaGameEvent(const char* type) {
+    sendLoRaEvent(type, nullptr);
 }
 
 // ============================================================
@@ -424,10 +421,11 @@ void startGame() {
     GamePacket pkt = {0};
     pkt.type = PKT_GAME_START;
     espnowBroadcast(&pkt);
-    sendGameEvent("game_start");
-    // Envoi info de chaque joueur au serveur
+    sendLoRaGameEvent("game_start");
+    // Enregistrement de chaque joueur aupres du serveur terrain
     for (int i = 0; i < satCount; i++) {
-        sendEvent("player_register", &satellites[i]);
+        sendLoRaEvent("player_register", &satellites[i]);
+        delay(100); // Laisser le temps au serveur terrain de traiter
     }
 }
 
@@ -435,7 +433,7 @@ void endGame() {
     GamePacket pkt = {0};
     pkt.type = PKT_GAME_END;
     espnowBroadcast(&pkt);
-    sendGameEvent("game_end");
+    sendLoRaGameEvent("game_end");
 }
 
 void reviveSatellite(int idx) {
@@ -446,7 +444,7 @@ void reviveSatellite(int idx) {
     pkt.sat_id = idx;
     espnowSend(s.mac, &pkt);
     s.status   = 0;
-    sendEvent("revive", &s);
+    sendLoRaEvent("revive", &s);
     Serial.printf("[REVIVE] Satellite %d (%s) revive (RSSI=%d)\n",
                   idx, s.player, s.lastRssi);
 }
@@ -521,7 +519,7 @@ void onReceive(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
             if (gState == STATE_GAME && satellites[id].status == 0) {
                 satellites[id].status = 1;
                 satellites[id].deaths = pkt->deaths;
-                sendEvent("death", &satellites[id]);
+                sendLoRaEvent("death", &satellites[id]);
                 Serial.printf("[MORT] %s (#%d) | Total: %lu\n",
                               satellites[id].player, id,
                               (unsigned long)satellites[id].deaths);
@@ -538,20 +536,17 @@ void onReceive(const esp_now_recv_info_t* info, const uint8_t* data, int len) {
 void onSent(const uint8_t* mac, esp_now_send_status_t status) {}
 
 // ============================================================
-// WIFI CONNEXION
+// LORA INIT
 // ============================================================
-bool connectWiFi() {
-    Serial.printf("[WiFi] Connexion a %s...\n", WIFI_SSID);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    uint32_t t0 = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - t0 < WIFI_TIMEOUT_MS) {
-        delay(200);
-    }
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.printf("[WiFi] Connecte! IP: %s\n", WiFi.localIP().toString().c_str());
+bool initLoRa() {
+    int state = lora.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR,
+                           RADIOLIB_SX126X_SYNC_WORD_PRIVATE, LORA_POWER, LORA_PREAMBLE);
+    if (state == RADIOLIB_ERR_NONE) {
+        Serial.printf("[LoRa] OK - %.1f MHz SF%d BW%.0fkHz\n",
+                      LORA_FREQ, LORA_SF, LORA_BW);
         return true;
     }
-    Serial.println("[WiFi] Echec connexion (mode hors ligne)");
+    Serial.printf("[LoRa] Erreur init: %d\n", state);
     return false;
 }
 
@@ -590,11 +585,20 @@ void setup() {
     oled.display();
     delay(1500);
 
-    // WiFi + ESP-NOW
-    // IMPORTANT : WiFi doit etre en STA avant init ESP-NOW
-    // Le canal ESP-NOW sera celui du WiFi connecte
+    // LoRa SX1262 (radio separee du WiFi - pas d'interference)
+    loraOk = initLoRa();
+    if (!loraOk) {
+        oled.clearDisplay();
+        oled.setCursor(0, 20); oled.println("LORA ERREUR!");
+        oled.setCursor(0, 34); oled.println("Verif cablage SX1262");
+        oled.display();
+        delay(3000);
+    }
+
+    // ESP-NOW (WiFi STA mode - canal fixe)
     WiFi.mode(WIFI_STA);
-    wifiOk = connectWiFi();
+    WiFi.disconnect();
+    delay(100);
 
     if (esp_now_init() != ESP_OK) {
         Serial.println("[ERREUR] Echec init ESP-NOW!");
@@ -610,7 +614,8 @@ void setup() {
     bc.encrypt = false;
     esp_now_add_peer(&bc);
 
-    Serial.printf("[INFO] MAC valise: %s\n", WiFi.macAddress().c_str());
+    Serial.printf("[INFO] MAC valise: %s | LoRa: %s\n",
+                  WiFi.macAddress().c_str(), loraOk ? "OK" : "ERREUR");
     gState = STATE_DISCOVERY;
 }
 

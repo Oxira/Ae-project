@@ -4,30 +4,31 @@
 // ============================================================
 //  VALISE - Heltec WiFi LoRa 32 V4 (ESP32-S3) Configuration
 //  Brigade des Sangliers - Airsoft Game System
-//  Adaptez selon votre cablage
+//
+//  Communication :
+//    - ESP-NOW (2.4 GHz WiFi) <-> Satellites ESP32-C3
+//    - LoRa SX1262 (868 MHz)  <-> Serveur terrain (Heltec V4 #2)
 // ============================================================
 
-// --- Ruban LED WS2812B (couleur d'equipe + animations) ---
+// --- Ruban LED WS2812B ---
 #define LED_PIN         38
 #define LED_COUNT       16
 #define LED_BRIGHTNESS  180
 
-// --- Boutons RGB (actif LOW) ---
-// Bouton A = Valider / Suivant / Demarrer partie
-// Bouton B = Annuler / Retour / Fin de partie
-#define BTN_A_PIN   0   // GPIO0 = BOOT button sur Heltec V4
-#define BTN_B_PIN   3   // GPIO3 = PRG button sur Heltec V4
+// --- Boutons (actif LOW) ---
+// Bouton A = Valider / Demarrer partie
+// Bouton B = Annuler / Fin de partie
+#define BTN_A_PIN   0   // GPIO0 = BOOT sur Heltec V4
+#define BTN_B_PIN   3   // GPIO3 = PRG  sur Heltec V4
 #define DEBOUNCE_MS 80
 
-// --- OLED integre Heltec V4 (SSD1306 128x64) ---
-// Ces GPIO sont fixes par le hardware Heltec V4
+// --- OLED integre Heltec V4 (SSD1306 128x64 - GPIO fixes hardware) ---
 #define OLED_SDA    17
 #define OLED_SCL    18
 #define OLED_RST    21
 #define OLED_ADDR   0x3C
 
 // --- Clavier matriciel 4x4 ---
-// Adaptez les GPIO selon votre cablage
 #define KBD_ROW0  11
 #define KBD_ROW1  12
 #define KBD_ROW2  13
@@ -37,29 +38,30 @@
 #define KBD_COL2  35
 #define KBD_COL3  36
 
-// --- GPS UART ---
+// --- GPS UART (optionnel) ---
 #define GPS_RX_PIN  44
 #define GPS_TX_PIN  43
 #define GPS_BAUD    9600
 
-// --- WiFi (point d'acces du smartphone / Raspberry Pi) ---
-#define WIFI_SSID   "BrigadeSangliers"
-#define WIFI_PASS   "airsoft2024"
-// IP du serveur (hotspot Android = souvent 192.168.43.1)
-#define SERVER_URL  "http://192.168.43.1:3000"
+// --- LoRa SX1262 (GPIO fixes hardware Heltec V4) ---
+#define LORA_NSS    8
+#define LORA_DIO1   14
+#define LORA_RST    12
+#define LORA_BUSY   13
+// Parametres radio - Europe 868 MHz (bande ISM)
+#define LORA_FREQ   868.0   // MHz
+#define LORA_BW     125.0   // kHz
+#define LORA_SF     9       // Spreading Factor (7-12, plus grand = plus loin/lent)
+#define LORA_CR     5       // Coding Rate 4/5
+#define LORA_POWER  14      // dBm (max 22 dBm legalement 14 dBm en 868 MHz)
+#define LORA_PREAMBLE 8
 
-// --- ESP-NOW ---
-#define ESPNOW_CHANNEL      1       // Canal WiFi utilise pour ESP-NOW
-#define MAX_SATELLITES      20      // Nb max de satellites geres
-// Seuil RSSI pour detection proximite ~1m (ajustable selon materiel)
-// -50 dBm = tres proche, -70 dBm = loin ; a calibrer sur le terrain
-#define PROXIMITY_RSSI      -55
-
-// --- Timeouts ---
-#define WIFI_TIMEOUT_MS         15000
-#define HTTP_TIMEOUT_MS         3000
-#define SATELLITE_TIMEOUT_MS    5000    // Satellite considere absent si pas de heartbeat
-#define PING_INTERVAL_MS        1000    // Intervalle de PING broadcast
+// --- ESP-NOW (pour communication avec les satellites) ---
+#define ESPNOW_CHANNEL      1
+#define MAX_SATELLITES      20
+#define PROXIMITY_RSSI      -55     // Seuil RSSI ~1m (calibrer sur terrain)
+#define SATELLITE_TIMEOUT_MS 5000
+#define PING_INTERVAL_MS    1000
 
 // --- Couleurs ---
 #define COLOR_NONE    0x000000

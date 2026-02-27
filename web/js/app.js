@@ -1,74 +1,91 @@
 /**
  * Brigade des Sangliers - Frontend Application
- * Connexion WebSocket + affichage temps reel
+ * WebSocket STOMP (Spring Boot) + affichage temps reel
  */
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
-const SERVER_URL = window.location.origin; // Meme serveur que la page
+const WS_ENDPOINT = window.location.origin + '/ws';    // Endpoint STOMP SockJS
+const WS_TOPIC    = '/topic/game-update';              // Topic Spring STOMP
 
 // ============================================================
 // ETAT LOCAL
 // ============================================================
-let gameState   = null;
-let socket      = null;
-let connected   = false;
-let startTime   = null;
-let timerInterval = null;
+let gameState    = null;
+let stompClient  = null;
+let connected    = false;
 
 // ============================================================
 // REFERENCES DOM
 // ============================================================
-const connDot        = document.getElementById('conn-dot');
-const connText       = document.getElementById('conn-text');
+const connDot         = document.getElementById('conn-dot');
+const connText        = document.getElementById('conn-text');
 const gameStatusBadge = document.getElementById('game-status-badge');
-const playersGrid    = document.getElementById('players-grid');
-const historyList    = document.getElementById('history-list');
-
-// Quick stats
-const qsTotal  = document.getElementById('qs-total');
-const qsAlive  = document.getElementById('qs-alive');
-const qsDeaths = document.getElementById('qs-deaths');
-const qsTimer  = document.getElementById('qs-timer');
+const playersGrid     = document.getElementById('players-grid');
+const historyList     = document.getElementById('history-list');
+const qsTotal         = document.getElementById('qs-total');
+const qsAlive         = document.getElementById('qs-alive');
+const qsDeaths        = document.getElementById('qs-deaths');
+const qsTimer         = document.getElementById('qs-timer');
 
 // ============================================================
-// CONNEXION WEBSOCKET
+// CONNEXION STOMP / SOCKJS
 // ============================================================
 function connect() {
-    // socket.io est charge depuis le serveur
-    if (typeof io === 'undefined') {
-        console.warn('[WS] socket.io non disponible - mode statique');
+    // StompJs est charge depuis le CDN (window.StompJs)
+    if (typeof StompJs === 'undefined' && typeof Stomp === 'undefined') {
+        console.warn('[WS] StompJs non disponible - polling REST');
         fetchState();
         return;
     }
 
-    socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    const SClient = window.StompJs ? window.StompJs.Client : window.Stomp.over;
 
-    socket.on('connect', () => {
-        connected = true;
-        setConnStatus(true);
-        console.log('[WS] Connecte au serveur');
+    stompClient = new StompJs.Client({
+        webSocketFactory: () => new SockJS(WS_ENDPOINT),
+        reconnectDelay: 5000,       // Reconnexion auto apres 5s
+
+        onConnect: () => {
+            connected = true;
+            setConnStatus(true);
+            console.log('[WS] Connecte au serveur STOMP');
+
+            stompClient.subscribe(WS_TOPIC, (msg) => {
+                try {
+                    gameState = JSON.parse(msg.body);
+                    render();
+                } catch (e) {
+                    console.error('[WS] Parsing JSON:', e);
+                }
+            });
+
+            // Charger l'etat initial via REST
+            fetchState();
+        },
+
+        onDisconnect: () => {
+            connected = false;
+            setConnStatus(false);
+            console.log('[WS] Deconnecte');
+        },
+
+        onStompError: (frame) => {
+            connected = false;
+            setConnStatus(false);
+            console.error('[WS] Erreur STOMP :', frame.headers?.message);
+        },
+
+        onWebSocketClose: () => {
+            connected = false;
+            setConnStatus(false);
+        }
     });
 
-    socket.on('disconnect', () => {
-        connected = false;
-        setConnStatus(false);
-        console.log('[WS] Deconnecte');
-    });
-
-    socket.on('game_update', (data) => {
-        gameState = data;
-        render();
-    });
-
-    socket.on('connect_error', () => {
-        connected = false;
-        setConnStatus(false);
-    });
+    stompClient.activate();
 }
 
-// Fallback polling si pas de WebSocket
+// Fallback REST (quand WS pas encore etabli)
 async function fetchState() {
     try {
         const res = await fetch('/api/state');
@@ -82,33 +99,30 @@ async function fetchState() {
 }
 
 // ============================================================
-// UI
+// UI - STATUT CONNEXION
 // ============================================================
 function setConnStatus(ok) {
     if (!connDot || !connText) return;
-    if (ok) {
-        connDot.className  = 'conn-dot live';
-        connText.textContent = 'Connecte - Temps reel';
-    } else {
-        connDot.className  = 'conn-dot error';
-        connText.textContent = 'Hors ligne';
-    }
+    connDot.className   = ok ? 'conn-dot live' : 'conn-dot error';
+    connText.textContent = ok ? 'Connecte - Temps reel' : 'Hors ligne - Reconnexion...';
 }
 
+// ============================================================
+// UTILITAIRES
+// ============================================================
 function teamClass(teamName) {
     if (!teamName) return '';
-    const map = { rouge: 'team-rouge', bleu: 'team-bleu', vert: 'team-vert', jaune: 'team-jaune' };
-    return map[teamName.toLowerCase()] || '';
+    return { rouge: 'team-rouge', bleu: 'team-bleu', vert: 'team-vert', jaune: 'team-jaune' }
+        [teamName.toLowerCase()] || '';
 }
 
 function teamColor(teamName) {
-    const map = {
+    return ({
         rouge: 'var(--team-red)',
         bleu:  'var(--team-blue)',
         vert:  'var(--team-green)',
         jaune: 'var(--team-yellow)'
-    };
-    return (teamName && map[teamName.toLowerCase()]) || 'var(--text-dim)';
+    })[teamName?.toLowerCase()] || 'var(--text-dim)';
 }
 
 function formatDuration(ms) {
@@ -116,8 +130,8 @@ function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
     const h = Math.floor(m / 60);
-    if (h > 0) return `${h}h${String(m % 60).padStart(2,'0')}`;
-    return `${String(m).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+    if (h > 0) return `${h}h${String(m % 60).padStart(2, '0')}`;
+    return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 function formatDate(ts) {
@@ -128,12 +142,18 @@ function formatDate(ts) {
     });
 }
 
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ============================================================
 // RENDU PRINCIPAL
 // ============================================================
 function render() {
     if (!gameState) return;
-
     renderStatusBadge();
     renderQuickStats();
     renderPlayers();
@@ -150,9 +170,10 @@ function renderStatusBadge() {
 }
 
 function renderQuickStats() {
+    // gameState.players peut etre un objet {satId: playerObj} ou une map
     const players = Object.values(gameState.players || {});
-    const alive  = players.filter(p => p.status === 'alive').length;
-    const deaths = players.reduce((acc, p) => acc + (p.deaths || 0), 0);
+    const alive   = players.filter(p => p.status === 'alive').length;
+    const deaths  = players.reduce((a, p) => a + (p.deaths || 0), 0);
 
     if (qsTotal)  qsTotal.textContent  = players.length;
     if (qsAlive)  qsAlive.textContent  = alive;
@@ -161,7 +182,6 @@ function renderQuickStats() {
 
 function renderPlayers() {
     if (!playersGrid) return;
-
     const players = Object.values(gameState.players || {});
 
     if (players.length === 0) {
@@ -173,18 +193,19 @@ function renderPlayers() {
         return;
     }
 
-    // Trier : vivants d'abord, puis par nombre de morts
+    // Trier : vivants en premier, puis par nombre de morts croissant
     players.sort((a, b) => {
-        if (a.status === b.status) return (a.deaths || 0) - (b.deaths || 0);
-        return a.status === 'alive' ? -1 : 1;
+        if (a.status !== b.status) return a.status === 'alive' ? -1 : 1;
+        return (a.deaths || 0) - (b.deaths || 0);
     });
 
     playersGrid.innerHTML = players.map(p => {
-        const isOut    = p.status === 'out';
-        const tClass   = teamClass(p.team);
-        const tColor   = teamColor(p.team);
-        const deathClr = p.deaths === 0 ? 'var(--text-soft)' : (p.deaths < 3 ? 'var(--orange)' : 'var(--out-color)');
-
+        const isOut   = p.status === 'out';
+        const tClass  = teamClass(p.team);
+        const tColor  = teamColor(p.team);
+        const dColor  = p.deaths === 0 ? 'var(--text-soft)'
+                      : p.deaths < 3  ? 'var(--orange)'
+                      :                  'var(--out-color)';
         return `
         <div class="player-card ${isOut ? 'is-out' : ''}" style="--team-color:${tColor}">
             <div class="pc-header">
@@ -193,7 +214,7 @@ function renderPlayers() {
             </div>
             <div class="pc-meta">
                 <span class="pc-role">${escHtml(p.role || 'Soldat')}</span>
-                <span class="pc-deaths" style="color:${deathClr}">
+                <span class="pc-deaths" style="color:${dColor}">
                     ${p.deaths || 0} mort${(p.deaths || 0) !== 1 ? 's' : ''}
                 </span>
             </div>
@@ -207,10 +228,9 @@ function renderPlayers() {
 
 function updateTimer() {
     if (!qsTimer) return;
-    if (gameState.status === 'running' && gameState.startTime) {
-        const elapsed = Date.now() - gameState.startTime;
-        qsTimer.textContent = formatDuration(elapsed);
-    } else if (gameState.status === 'ended' && gameState.startTime && gameState.endTime) {
+    if (gameState?.status === 'running' && gameState.startTime) {
+        qsTimer.textContent = formatDuration(Date.now() - gameState.startTime);
+    } else if (gameState?.status === 'ended' && gameState.startTime && gameState.endTime) {
         qsTimer.textContent = formatDuration(gameState.endTime - gameState.startTime);
     } else {
         qsTimer.textContent = '--:--';
@@ -226,22 +246,20 @@ async function loadHistory() {
         const res  = await fetch('/api/history');
         const data = await res.json();
         renderHistory(data);
-    } catch (e) {
-        historyList.innerHTML = '<p style="color:var(--text-dim);text-align:center">Historique indisponible</p>';
+    } catch {
+        historyList.innerHTML = '<p style="color:var(--text-dim);text-align:center">Historique indisponible (serveur hors ligne)</p>';
     }
 }
 
 function renderHistory(data) {
     if (!historyList) return;
-    if (!data || data.length === 0) {
+    if (!data?.length) {
         historyList.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:3rem">Aucune partie jouee pour l\'instant.</p>';
         return;
     }
-
     historyList.innerHTML = data.map((game, idx) => {
         const dur     = game.duration ? formatDuration(game.duration) : '--';
         const players = (game.players || []).slice(0, 8);
-
         return `
         <div class="history-card">
             <div class="hc-header">
@@ -252,60 +270,44 @@ function renderHistory(data) {
             <div class="hc-players">
                 ${players.map(p => `
                     <span class="hc-pill ${teamClass(p.team)}">
-                        ${escHtml(p.player)} — ${p.deaths || 0} mort${(p.deaths||0)!==1?'s':''}
+                        ${escHtml(p.player)} — ${p.deaths || 0} mort${(p.deaths || 0) !== 1 ? 's' : ''}
                     </span>`).join('')}
-                ${(game.players||[]).length > 8 ? `<span class="hc-pill">+${(game.players.length-8)} autres</span>` : ''}
+                ${(game.players?.length || 0) > 8 ? `<span class="hc-pill">+${game.players.length - 8} autres</span>` : ''}
             </div>
         </div>`;
     }).join('');
 }
 
 // ============================================================
-// UTILITAIRES
+// NAVIGATION ACTIVE
 // ============================================================
-function escHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// Navigation active
 function updateActiveNav() {
     const sections = document.querySelectorAll('section[id]');
     const links    = document.querySelectorAll('.nav-links a');
     const scrollY  = window.scrollY + 80;
-
     sections.forEach(sec => {
         if (scrollY >= sec.offsetTop && scrollY < sec.offsetTop + sec.offsetHeight) {
-            links.forEach(l => {
-                l.classList.toggle('active', l.getAttribute('href') === `#${sec.id}`);
-            });
+            links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === `#${sec.id}`));
         }
     });
 }
 
-// Compte a rebours en direct
+// ============================================================
+// TIMERS DE FOND
+// ============================================================
+
+// Mise a jour du timer de partie chaque seconde
 setInterval(() => {
-    if (gameState && gameState.status === 'running') {
-        updateTimer();
-    }
+    if (gameState?.status === 'running') updateTimer();
 }, 1000);
 
-// Polling fallback toutes les 5s si WebSocket non disponible
+// Rafraichir l'historique toutes les 30s
+setInterval(loadHistory, 30000);
+
+// Polling REST de secours si STOMP non connecte
 setInterval(() => {
-    if (!connected && typeof io === 'undefined') fetchState();
-}, 5000);
+    if (!connected) fetchState();
+}, 8000);
 
 // ============================================================
 // INIT
@@ -314,6 +316,4 @@ document.addEventListener('DOMContentLoaded', () => {
     connect();
     loadHistory();
     window.addEventListener('scroll', updateActiveNav, { passive: true });
-    // Afficher la date de rechargement de l'historique
-    setInterval(loadHistory, 30000);
 });

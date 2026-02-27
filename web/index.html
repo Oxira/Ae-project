@@ -7,8 +7,9 @@
     <title>La Brigade des Sangliers | Airsoft Niort</title>
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Socket.io charge depuis le serveur (disponible uniquement en mode live) -->
-    <script src="/socket.io/socket.io.js" onerror="console.warn('socket.io non disponible')"></script>
+    <!-- SockJS + STOMP pour WebSocket Spring Boot -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 </head>
 <body>
 
