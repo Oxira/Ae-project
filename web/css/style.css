@@ -1,0 +1,669 @@
+/* ============================================================
+   Brigade des Sangliers - Airsoft Niort
+   Style inspiré du logo : fond sombre, rouge, bleu marine, or
+   ============================================================ */
+
+:root {
+    --bg-0       : #080b10;
+    --bg-1       : #0f1420;
+    --bg-2       : #161d2e;
+    --bg-card    : #1a2238;
+    --bg-card-h  : #1f2844;
+    --accent-red : #cc1f1f;
+    --accent-red2: #ff3030;
+    --accent-blue: #0e4a8a;
+    --accent-gold: #c9a227;
+    --accent-gold2:#f0c040;
+    --text-main  : #e8eaf0;
+    --text-soft  : #8a95b0;
+    --text-dim   : #4a5270;
+    --border     : #252f4a;
+    --border-h   : #3a4870;
+    --green      : #22c55e;
+    --orange     : #f59e0b;
+    --alive-color: #22c55e;
+    --out-color  : #ef4444;
+    --team-red   : #ef4444;
+    --team-blue  : #3b82f6;
+    --team-green : #22c55e;
+    --team-yellow: #eab308;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-0);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+a {
+    color: var(--accent-gold);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+a:hover { color: var(--accent-gold2); }
+
+/* ============================================================
+   BARRE DE NAVIGATION
+   ============================================================ */
+nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(8, 11, 16, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    color: var(--text-main);
+}
+
+.nav-brand .logo-sm {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-red);
+    object-fit: cover;
+}
+
+.nav-brand .brand-text span {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-soft);
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+}
+
+.nav-links a {
+    color: var(--text-soft);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--accent-gold);
+    border-bottom-color: var(--accent-gold);
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+#hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(14,74,138,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 50% 0%,   rgba(204,31,31,0.12) 0%, transparent 50%),
+        var(--bg-0);
+}
+
+/* Ligne décorative rouge en haut */
+#hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent-red), var(--accent-gold), var(--accent-red), transparent);
+}
+
+.hero-logo {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-red);
+    box-shadow:
+        0 0 30px rgba(204,31,31,0.4),
+        0 0 80px rgba(204,31,31,0.15),
+        inset 0 0 30px rgba(0,0,0,0.5);
+    margin-bottom: 2rem;
+    object-fit: cover;
+    animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+    from { box-shadow: 0 0 20px rgba(204,31,31,0.3), 0 0 60px rgba(204,31,31,0.1); }
+    to   { box-shadow: 0 0 40px rgba(204,31,31,0.6), 0 0 100px rgba(204,31,31,0.2), 0 0 200px rgba(201,162,39,0.05); }
+}
+
+/* Placeholder logo (si pas d'image) */
+.hero-logo-placeholder {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-red);
+    box-shadow: 0 0 30px rgba(204,31,31,0.4);
+    margin-bottom: 2rem;
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+.hero-subtitle {
+    font-size: 0.8rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+h1.hero-title {
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, var(--accent-gold) 50%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-tagline {
+    font-size: 1.05rem;
+    color: var(--text-soft);
+    max-width: 480px;
+    margin: 0 auto 2.5rem;
+}
+
+.hero-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2rem;
+    padding: 0.45rem 1.2rem;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    margin-bottom: 2.5rem;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.8rem;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--accent-red);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(204,31,31,0.3);
+}
+.btn-primary:hover {
+    background: var(--accent-red2);
+    color: #fff;
+    box-shadow: 0 6px 30px rgba(255,48,48,0.4);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--accent-gold);
+    border: 2px solid var(--accent-gold);
+}
+.btn-outline:hover {
+    background: var(--accent-gold);
+    color: #000;
+    transform: translateY(-1px);
+}
+
+/* ============================================================
+   SECTIONS COMMUNES
+   ============================================================ */
+section {
+    padding: 5rem 2rem;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+}
+
+.section-tag {
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.section-title {
+    font-size: clamp(1.6rem, 4vw, 2.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-main);
+}
+
+.section-title span { color: var(--accent-gold); }
+
+.divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+    margin: 1rem auto 0;
+    border-radius: 2px;
+}
+
+/* ============================================================
+   SECTION A PROPOS
+   ============================================================ */
+#about {
+    background: var(--bg-1);
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+}
+
+.about-text p {
+    color: var(--text-soft);
+    margin-bottom: 1rem;
+    font-size: 0.97rem;
+    line-height: 1.8;
+}
+
+.about-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: var(--accent-gold); }
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.3rem;
+}
+
+/* ============================================================
+   SECTION DASHBOARD TEMPS REEL
+   ============================================================ */
+#dashboard {
+    background: var(--bg-0);
+}
+
+/* Bandeau statut connexion */
+.connection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 2rem;
+    font-size: 0.85rem;
+}
+
+.conn-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s;
+}
+.conn-dot.live { background: var(--green); animation: pulse 1.5s infinite; }
+.conn-dot.error { background: var(--out-color); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+.game-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.9rem;
+    border-radius: 2rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.game-status-badge.idle    { background: rgba(74,82,112,0.3); color: var(--text-soft); border: 1px solid var(--border); }
+.game-status-badge.running { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+.game-status-badge.ended   { background: rgba(239,68,68,0.15); color: var(--out-color); border: 1px solid rgba(239,68,68,0.3); }
+
+/* Stats rapides */
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.qs-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.qs-val  { font-size: 1.8rem; font-weight: 900; color: var(--accent-gold); }
+.qs-lbl  { font-size: 0.72rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Tableau des joueurs */
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.player-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+}
+
+.player-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+    background: var(--team-color, var(--text-dim));
+}
+
+.player-card:hover {
+    border-color: var(--border-h);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.player-card.is-out {
+    opacity: 0.65;
+    border-color: rgba(239,68,68,0.3);
+}
+.player-card.is-out::before { background: var(--out-color) !important; }
+
+.pc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+.pc-name {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+.pc-team-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.pc-meta {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.pc-role {
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pc-deaths {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.pc-status {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-left: 0.75rem;
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-alive { color: var(--alive-color); }
+.status-out   { color: var(--out-color);   }
+
+.pc-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+.status-alive .pc-status-dot { background: var(--alive-color); animation: pulse 2s infinite; }
+.status-out   .pc-status-dot { background: var(--out-color); }
+
+/* Message vide */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-dim);
+}
+.empty-state .es-icon { font-size: 3rem; margin-bottom: 1rem; }
+.empty-state p { font-size: 0.9rem; }
+
+/* Couleurs des equipes */
+.team-rouge  { --team-color: var(--team-red);    background: rgba(239,68,68,0.15);  color: var(--team-red); }
+.team-bleu   { --team-color: var(--team-blue);   background: rgba(59,130,246,0.15); color: var(--team-blue); }
+.team-vert   { --team-color: var(--team-green);  background: rgba(34,197,94,0.15);  color: var(--team-green); }
+.team-jaune  { --team-color: var(--team-yellow); background: rgba(234,179,8,0.15);  color: var(--team-yellow); }
+
+/* ============================================================
+   SECTION HISTORIQUE
+   ============================================================ */
+#history {
+    background: var(--bg-1);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.history-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+.history-card:hover { border-color: var(--border-h); }
+
+.hc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.hc-name  { font-weight: 800; font-size: 1rem; }
+.hc-date  { font-size: 0.78rem; color: var(--text-soft); }
+.hc-dur   { font-size: 0.78rem; color: var(--accent-gold); font-weight: 600; }
+
+.hc-players {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.hc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3rem;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.75rem;
+    color: var(--text-soft);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.83rem;
+}
+
+footer strong { color: var(--accent-gold); }
+
+/* ============================================================
+   LOADER / TOAST
+   ============================================================ */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-gold);
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    z-index: 999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .nav-links { display: none; }
+    .about-grid { grid-template-columns: 1fr; }
+    .quick-stats { grid-template-columns: 1fr 1fr; }
+    .about-stats { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+    section { padding: 3rem 1rem; }
+    .quick-stats { grid-template-columns: 1fr 1fr; }
+    h1.hero-title { font-size: 2rem; }
+}
