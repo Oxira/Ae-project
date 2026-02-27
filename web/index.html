@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="La Brigade des Sangliers - Equipe Airsoft de Niort. Suivi de parties en temps reel.">
+    <title>La Brigade des Sangliers | Airsoft Niort</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- SockJS + STOMP pour WebSocket Spring Boot -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ========================================================
+     NAVIGATION
+     ======================================================== -->
+<nav>
+    <div class="nav-brand">
+        <!-- Remplacez src par votre logo réel -->
+        <div class="hero-logo-placeholder" style="width:38px;height:38px;font-size:1.5rem;margin:0;animation:none;border-width:1px">🐗</div>
+        <div class="brand-text">
+            La Brigade des Sangliers
+            <span>Airsoft · Niort</span>
+        </div>
+    </div>
+    <ul class="nav-links">
+        <li><a href="#hero">Accueil</a></li>
+        <li><a href="#about">L'Equipe</a></li>
+        <li><a href="#dashboard">Live</a></li>
+        <li><a href="#history">Historique</a></li>
+    </ul>
+</nav>
+
+<!-- ========================================================
+     HERO
+     ======================================================== -->
+<section id="hero">
+    <!-- Remplacez cette div par une balise <img class="hero-logo" src="logo.png" alt="Logo"> -->
+    <div class="hero-logo-placeholder">🐗</div>
+
+    <p class="hero-subtitle">Equipe Airsoft &bull; Niort &bull; Deux-Sevres</p>
+
+    <h1 class="hero-title">La Brigade<br>des Sangliers</h1>
+
+    <p class="hero-tagline">
+        Tactique, solidarité et bonne humeur. On est la brigade qui charge,
+        qui rigole, et qui revient toujours au front.
+    </p>
+
+    <div class="hero-location">
+        <span>📍</span> Niort, Deux-Sevres (79)
+    </div>
+
+    <div class="hero-cta">
+        <a href="#dashboard" class="btn btn-primary">🔴 Live Score</a>
+        <a href="#about" class="btn btn-outline">Notre Equipe</a>
+    </div>
+</section>
+
+<!-- ========================================================
+     A PROPOS
+     ======================================================== -->
+<section id="about">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Qui sommes-nous ?</span>
+            <h2 class="section-title">La <span>Brigade</span></h2>
+            <div class="divider"></div>
+        </div>
+
+        <div class="about-grid">
+            <div class="about-text">
+                <p>
+                    La Brigade des Sangliers, c'est une equipe d'airsoft basee sur
+                    <strong>Niort</strong>, dans les Deux-Sevres. On n'est pas des
+                    pros qui se prennent au serieux, on est une bande de potes qui
+                    aime les parties intenses, le materiel qui claque et les fous-rires
+                    apres les assauts.
+                </p>
+                <p>
+                    Notre terrain de jeu, c'est la region niortaise et ses alentours —
+                    forets, champs, terrains urbains. On accueille volontiers de nouveaux
+                    joueurs, qu'ils soient novices ou veterans. L'esprit d'equipe avant tout.
+                </p>
+                <p>
+                    Ce systeme de suivi en temps reel a ete concu par nos soins pour
+                    rendre nos parties encore plus immersives : chaque joueur porte un
+                    module satellite, la valise centrale gere les equipes, et tout se
+                    retrouve ici en direct.
+                </p>
+            </div>
+
+            <div class="about-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-players">—</div>
+                    <div class="stat-label">Joueurs actifs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-games">—</div>
+                    <div class="stat-label">Parties jouees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">79</div>
+                    <div class="stat-label">Deux-Sevres</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">💪</div>
+                    <div class="stat-label">Fair-play</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================
+     DASHBOARD TEMPS REEL
+     ======================================================== -->
+<section id="dashboard">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Suivi en direct</span>
+            <h2 class="section-title">Live <span>Dashboard</span></h2>
+            <div class="divider"></div>
+        </div>
+
+        <!-- Barre de statut connexion -->
+        <div class="connection-bar">
+            <div class="conn-status">
+                <div class="conn-dot" id="conn-dot"></div>
+                <span id="conn-text">Connexion...</span>
+            </div>
+            <div id="game-status-badge" class="game-status-badge idle">⏸ En attente</div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="quick-stats">
+            <div class="qs-card">
+                <div class="qs-val" id="qs-total">0</div>
+                <div class="qs-lbl">Joueurs</div>
+            </div>
+            <div class="qs-card">
+                <div class="qs-val" id="qs-alive">0</div>
+                <div class="qs-lbl">En vie</div>
+            </div>
+            <div class="qs-card">
+                <div class="qs-val" id="qs-deaths">0</div>
+                <div class="qs-lbl">Eliminations</div>
+            </div>
+            <div class="qs-card">
+                <div class="qs-val" id="qs-timer">--:--</div>
+                <div class="qs-lbl">Duree</div>
+            </div>
+        </div>
+
+        <!-- Grille des joueurs -->
+        <div class="players-grid" id="players-grid">
+            <div class="empty-state">
+                <div class="es-icon">🎮</div>
+                <p>Aucun joueur enregistre.<br>
+                Demarrez une partie depuis la valise pour voir les scores ici.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================
+     HISTORIQUE
+     ======================================================== -->
+<section id="history">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Nos batailles</span>
+            <h2 class="section-title">Historique des <span>Parties</span></h2>
+            <div class="divider"></div>
+        </div>
+
+        <div class="history-list" id="history-list">
+            <p style="color:var(--text-dim);text-align:center;padding:3rem">
+                Chargement de l'historique...
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================
+     FOOTER
+     ======================================================== -->
+<footer>
+    <p>
+        <strong>La Brigade des Sangliers</strong> &bull;
+        Airsoft Niort, Deux-Sevres &bull;
+        Systeme de suivi temps reel v1.0
+    </p>
+    <p style="margin-top:0.5rem">
+        Fait avec ❤️ et des BBs &bull; Hardware : Heltec V4 + ESP32-C3
+    </p>
+</footer>
+
+<!-- Toast notifications -->
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+
+<!-- Mise a jour des stats "a propos" depuis l'historique -->
+<script>
+(async () => {
+    try {
+        const res  = await fetch('/api/history');
+        const hist = await res.json();
+        const gamesEl   = document.getElementById('stat-games');
+        const playersEl = document.getElementById('stat-players');
+
+        if (gamesEl)   gamesEl.textContent   = hist.length || 0;
+
+        // Calculer les joueurs uniques
+        const names = new Set();
+        hist.forEach(g => (g.players||[]).forEach(p => names.add(p.player)));
+        if (playersEl) playersEl.textContent = names.size || 0;
+    } catch(e) {}
+})();
+</script>
+
+</body>
+</html>

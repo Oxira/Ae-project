@@ -1,0 +1,79 @@
+version: '3.9'
+
+# ============================================================
+#  Brigade des Sangliers - Stack Docker
+#  Deploiement sur Proxmox (LXC ou VM) avec Docker
+#
+#  Services :
+#    - mosquitto  : broker MQTT (port 1883)
+#    - backend    : Spring Boot API + WebSocket (port 8080)
+#
+#  Usage :
+#    cd docker && docker compose up -d
+#    Logs : docker compose logs -f
+#    Stop : docker compose down
+# ============================================================
+
+services:
+
+  # ---- Broker MQTT ----
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: brigade-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"       # MQTT standard (field server se connecte ici)
+      - "9001:9001"       # WebSocket MQTT (optionnel)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - brigade_net
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "test", "-m", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ---- Backend Spring Boot ----
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: brigade-backend
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    ports:
+      - "8080:8080"       # API REST + WebSocket + site web
+    volumes:
+      - backend_data:/app/data    # Persistance historique JSON
+    environment:
+      # Surcharge des proprietes Spring Boot
+      MQTT_BROKER_URL: tcp://mosquitto:1883
+      MQTT_CLIENT_ID: brigade-backend
+      MQTT_TOPIC_EVENTS: brigade/game/event
+      # Optionnel : auth MQTT
+      # MQTT_USERNAME: brigade
+      # MQTT_PASSWORD: secret
+    networks:
+      - brigade_net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/api/state"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# ---- Volumes persistants ----
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  backend_data:
+
+# ---- Reseau interne ----
+networks:
+  brigade_net:
+    driver: bridge
